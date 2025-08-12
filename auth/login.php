@@ -12,7 +12,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($username) || empty($password)) {
         $message = "All fields are required.";
         $messageType = 'error';
-    } else {
+    }
+    
+    elseif ($username === 'guest' && $password === 'guest') 
+    {
+        // ✅ Direct demo login, bypass database
+
+
+        header("Location: ../demounit/demodashboard.php");
+        exit();
+    } 
+    
+
+    else 
+    {
         $stmt = $conn->prepare("SELECT id, fullname, password, role, status, is_temp_password, tenant_id FROM users WHERE username = ?");
         $stmt->bind_param("s", $username);
         $stmt->execute();

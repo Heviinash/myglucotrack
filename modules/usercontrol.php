@@ -76,7 +76,6 @@ $conn->close();
                             <th class="p-3 text-left">Username</th>
                             <th class="p-3 text-left">Role</th>
                             <th class="p-3 text-left">Status</th>
-                            <th class="p-3 text-left">Action</th>
                             <th class="p-3 text-left">Password Reset</th>
                         </tr>
                     </thead>
@@ -88,13 +87,14 @@ $conn->close();
                                 <td class="p-3"><?= htmlspecialchars($user['username']) ?></td>
                                 <td class="p-3"><?= htmlspecialchars($user['role']) ?></td>
                                 <td class="p-3">
-                                    <select name="status[<?= $user['id'] ?>]" class="border rounded px-2 py-1">
+                                    <select 
+                                        data-user-id="<?= $user['id'] ?>" 
+                                        class="status-dropdown border rounded px-2 py-1"
+                                    >
                                         <option value="Active" <?= $user['status'] === 'Active' ? 'selected' : '' ?>>Active</option>
-                                        <option value="Disable" <?= $user['status'] === 'Disable' ? 'selected' : '' ?>>Disable</option>
+                                        <option value="Inactive" <?= $user['status'] === 'Inactive' ? 'selected' : '' ?>>Inactive</option>
                                     </select>
-                                </td>
-                                <td class="p-3">
-                                    <button type="submit" name="update" value="<?= $user['id'] ?>" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Update</button>
+
                                 </td>
                                 <td class="p-3">
                                     <button type="button" class="bg-yellow-500 text-white px-2 py-1 rounded" onclick="confirmResetPassword(<?= $user['id'] ?>)">
@@ -162,6 +162,42 @@ $conn->close();
             mobileMenu.classList.toggle('-translate-x-full');
         });
     </script>
+
+
+<script>
+document.querySelectorAll('.status-dropdown').forEach(dropdown => {
+    dropdown.addEventListener('change', (e) => {
+        const select = e.target;
+        const userId = select.getAttribute('data-user-id');
+        const newStatus = select.value;
+
+        fetch('update_user_role_status.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `user_id=${encodeURIComponent(userId)}&status=${encodeURIComponent(newStatus)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Status updated',
+                    toast: true,
+                    timer: 1500,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                });
+            } else {
+                Swal.fire('Error', data.message || 'Update failed', 'error');
+            }
+        })
+        .catch(() => {
+            Swal.fire('Error', 'Request failed. Try again.', 'error');
+        });
+    });
+});
+</script>
+
 
 </body>
 </html>
