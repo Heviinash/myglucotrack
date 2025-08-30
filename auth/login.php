@@ -2,8 +2,14 @@
 session_start();
 require '../config/db.php';
 
+$flash_message = null;
+if (isset($_SESSION['flash_message'])) {
+    $flash_message = $_SESSION['flash_message'];
+    unset($_SESSION['flash_message']); // remove after showing once
+}
+
 $message = '';
-$messageType = ''; // 'error' or 'success'
+$messageType = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
@@ -12,46 +18,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($username) || empty($password)) {
         $message = "All fields are required.";
         $messageType = 'error';
-    }
-    
-    elseif ($username === 'guest' && $password === 'guest') 
-    {
-        // ✅ Direct demo login, bypass database
-
-
+    } elseif ($username === 'guest' && $password === 'guest') {
         header("Location: ../demounit/demodashboard.php");
         exit();
-    } 
-    
-
-    else 
-    {
-        $stmt = $conn->prepare("SELECT id, fullname, password, role, status, is_temp_password, tenant_id FROM users WHERE username = ?");
+    } else {
+        // ✅ Join with tenants to get tenant_name
+        $stmt = $conn->prepare("
+            SELECT u.id, u.fullname, u.password, u.role, u.status, 
+                   u.is_temp_password, u.tenant_id, u.username, t.tenant_name
+            FROM users u
+            JOIN tenants t ON u.tenant_id = t.id
+            WHERE u.username = ?
+        ");
         $stmt->bind_param("s", $username);
         $stmt->execute();
         $stmt->store_result();
 
         if ($stmt->num_rows === 1) {
-            $stmt->bind_result($id, $fullname, $hashedPassword, $role, $status, $is_temp_password, $tenant_id);
+            $stmt->bind_result($id, $fullname, $hashedPassword, $role, $status, $is_temp_password, $tenant_id, $usernameDB, $tenant_name);
             $stmt->fetch();
 
             if ($status !== 'Active') {
                 $message = "Account is on hold by Admin. Please contact Admin.";
                 $messageType = 'error';
             } elseif (password_verify($password, $hashedPassword)) {
+                // ✅ Set session variables
                 $_SESSION['user_id'] = $id;
-                $_SESSION['username'] = $username;
+                $_SESSION['username'] = $usernameDB;
                 $_SESSION['fullname'] = $fullname;
                 $_SESSION['role'] = $role;
                 $_SESSION['tenant_id'] = $tenant_id;
+                $_SESSION['tenant_name'] = $tenant_name;
 
+                // ✅ Collect device + IP info
+                $device = $_SERVER['HTTP_USER_AGENT'];
+                $ip = $_SERVER['REMOTE_ADDR'];
+
+                // ✅ Insert into sessions_log
+                $stmtLog = $conn->prepare("
+                    INSERT INTO sessions_log (user_id, tenant_id, device_info, ip_address, login_time, still_active)
+                    VALUES (?, ?, ?, ?, NOW(), 1)
+                ");
+                $stmtLog->bind_param("iiss", $id, $tenant_id, $device, $ip);
+                $stmtLog->execute();
+
+                $_SESSION['session_log_id'] = $stmtLog->insert_id;
+                $stmtLog->close();
+
+                // ✅ Redirect
                 if ($is_temp_password == 1) {
                     $_SESSION['is_temp_password'] = 1;
                     header("Location: ../modules/change_password.php");
                     exit();
-                } 
-                else 
-                {
+                } else {
                     $_SESSION['is_temp_password'] = 0;
                     header("Location: ../dashboard.php");
                     exit();
@@ -73,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -86,8 +106,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <div class="bg-white shadow-xl rounded-lg p-8 w-full max-w-md space-y-6 animate-fade-in-down">
 
+        <?php if ($flash_message): ?>
+            <div id="flash-message" class="mb-4 rounded-xl bg-green-100 border border-green-300 text-green-800 px-4 py-3 text-sm shadow-md">
+                <?= htmlspecialchars($flash_message) ?>
+            </div>
+        <?php endif; ?>
+
+        
+
+
+
         <div class="text-center">
-            <h2 class="text-3xl font-bold text-blue-800">GlucoTracker</h2>
+            <h2 class="text-3xl font-bold text-blue-800">MyGlucoTrack</h2>
             <p class="text-sm text-gray-500 mt-1">Login to your account</p>
         </div>
 
@@ -134,4 +164,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 
 </body>
+
+<script>
+    setTimeout(() => {
+        const alert = document.getElementById("flash-message");
+        if (alert) {
+            alert.style.transition = "opacity 0.5s";
+            alert.style.opacity = "0";
+            setTimeout(() => alert.remove(), 500);
+        }
+    }, 4000); // disappears after 4s
+</script>
+
 </html>

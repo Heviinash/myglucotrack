@@ -13,7 +13,7 @@ $prefix = $inModules ? '../' : '';
 <!-- Desktop Sidebar -->
 <aside class="w-64 bg-blue-900 text-white flex-shrink-0 hidden md:block">
     <div class="p-6 text-center border-b border-blue-700">
-        <h1 class="text-2xl font-bold">GlucoTracker</h1>
+        <h1 class="text-2xl font-bold">MyGlucoTrack</h1>
         <p class="text-sm mt-2"><?= htmlspecialchars($role) ?></p>
     </div>
     <nav class="mt-6 space-y-2 px-4">
@@ -23,6 +23,7 @@ $prefix = $inModules ? '../' : '';
         <?php if ($role === 'System God'): ?>
             <a href="<?= $prefix ?>modules/usercontrol.php" class="block py-2 px-4 rounded hover:bg-blue-700">User Control</a>
             <a href="<?= $prefix ?>modules/patient.php" class="block py-2 px-4 rounded hover:bg-blue-700">Patient</a>
+            <a href="<?= $prefix ?>modules/sessions_log.php" class="block py-2 px-4 rounded hover:bg-blue-700">User Session</a>
         <?php elseif ($role === 'Admin'): ?>
             <a href="<?= $prefix ?>modules/patient.php" class="block py-2 px-4 rounded hover:bg-blue-700">Patient</a>
             <a href="<?= $prefix ?>modules/register_user.php" class="block py-2 px-4 rounded hover:bg-blue-700">Create Users</a>
@@ -38,7 +39,7 @@ $prefix = $inModules ? '../' : '';
 <!-- Mobile Top Nav -->
 <div class="md:hidden p-4 fixed top-0 left-0 w-full bg-blue-900 text-white flex justify-start items-center z-50">
     <button id="menuToggle" class="focus:outline-none mr-4">☰</button>
-    <span class="font-bold text-lg">GlucoTracker</span>
+    <span class="font-bold text-lg">MyGlucoTrack</span>
 </div>
 
 <!-- Mobile Sidebar -->
@@ -63,3 +64,4 @@ $prefix = $inModules ? '../' : '';
         <a href="<?= $prefix ?>logout.php" class="block py-2 px-4 rounded hover:bg-red-600">Logout</a>
     </nav>
 </div>
+
